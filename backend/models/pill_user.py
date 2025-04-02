@@ -4,7 +4,7 @@ from backend.database import Base
 class PillUser(Base):
     __tablename__ = "pill_user"
 
-    id_pill_user = Column(Integer, primary_key=True, index=True)
+    id_pill_user = Column(Integer, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)
     active_substance = Column(String, nullable=True)
     expiration_date = Column(Date, nullable=True)

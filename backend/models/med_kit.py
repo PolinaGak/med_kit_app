@@ -5,7 +5,7 @@ from backend.database import Base
 class MedicineKit(Base):
     __tablename__ = "med_kit"
 
-    id_med_kit = Column(Integer, primary_key=True, index=True)
+    id_med_kit = Column(Integer, primary_key=True, autoincrement=True, index=True)
     name = Column(String, nullable=False)  # Название аптечки
     creation_date = Column(DateTime, default=datetime.utcnow)  # Дата создания
     comment = Column(String, nullable=True)  # Комментарий

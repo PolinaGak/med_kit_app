@@ -4,6 +4,7 @@ import '../api_service.dart';
 import '../models/medkit.dart';
 import '../enums/medkit_icon.dart';
 import 'dart:developer';
+import 'create_medkit_screen.dart';
 
 class MedKitListScreen extends StatefulWidget {
   @override
@@ -19,6 +20,12 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
     futureMedKits = ApiService().getAllMedKits();
   }
 
+  void _refreshMedKits() {
+    setState(() {
+      futureMedKits = ApiService().getAllMedKits();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,7 +38,6 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            print(snapshot.data!);
             log('Ошибка загрузки данных: ${snapshot.error}', name: 'FutureBuilder');
             return Center(child: Text('Ошибка загрузки данных: ${snapshot.error}'));
           } else if (snapshot.hasData) {
@@ -117,17 +123,14 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
     );
   }
 
-  void _showCreateMedKitDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Создать новую аптечку"),
-        content: TextField(decoration: InputDecoration(hintText: "Название аптечки")),
-        actions: [
-          TextButton(child: Text("Отмена"), onPressed: () => Navigator.of(context).pop()),
-          TextButton(child: Text("Создать"), onPressed: () {}),
-        ],
-      ),
+  void _showCreateMedKitDialog(BuildContext context) async {
+    final newMedKit = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateMedKitScreen()),
     );
+
+    if (newMedKit != null) {
+      _refreshMedKits();
+    }
   }
 }

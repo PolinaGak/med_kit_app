@@ -7,7 +7,7 @@ import 'models/pill_user.dart';
 
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://127.0.0.1:9000';
 
   // Получение всех аптечек
   Future<List<MedKit>> getAllMedKits() async {
@@ -56,6 +56,34 @@ class ApiService {
     } catch (e) {
       log('Ошибка в API: $e');
       return [];
+    }
+  }
+
+
+  //Сохранение новой аптечки
+  Future<MedKit?> createMedKit(
+      String name,
+      String color,
+      String iconName,
+      String? comment,
+      ) async {
+    final url = Uri.parse('$baseUrl/api/medkits');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({
+        'name': name,
+        'color': color,
+        'icon_name': iconName,
+        'comment': comment,
+        'creation_date': DateTime.now().toIso8601String(),
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return MedKit.fromJson(json.decode(response.body));
+    } else {
+      return null;
     }
   }
 }

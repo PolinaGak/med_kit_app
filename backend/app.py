@@ -31,7 +31,7 @@ async def read_root():
     return {"message": "This is API for medKit"}
 
 
-@app.post("/api/medkits/", response_model=MedicineKitResponse)
+@app.post("/api/medkits", response_model=MedicineKitResponse)
 async def create_medkit(
     medkit: MedicineKitCreate, db: AsyncSession = Depends(get_db)
 ) -> MedicineKitResponse:
