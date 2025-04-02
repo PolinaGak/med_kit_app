@@ -1,4 +1,4 @@
-class Pill {
+class PillUser {
   final int idPillUser;
   final String name;
   final String? activeSubstance;
@@ -12,7 +12,7 @@ class Pill {
   final String? imageUrl;
   final double? lastPrice;
 
-  Pill({
+  PillUser({
     required this.idPillUser,
     required this.name,
     this.activeSubstance,
@@ -44,8 +44,8 @@ class Pill {
     };
   }
 
-  factory Pill.fromJson(Map<String, dynamic> json) {
-    return Pill(
+  factory PillUser.fromJson(Map<String, dynamic> json) {
+    return PillUser(
       idPillUser: json['id_pill_user'],
       name: json['name'],
       activeSubstance: json['active_substance'],

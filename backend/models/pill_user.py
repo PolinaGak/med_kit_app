@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Float
 from backend.database import Base
 
-
 class PillUser(Base):
     __tablename__ = "pill_user"
 

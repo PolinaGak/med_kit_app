@@ -1,12 +1,12 @@
 import 'medkit.dart';
-import 'pill.dart';
+import 'pill_user.dart';
 
 class MedKitPill {
   final int id;
   final int idMedKit;
   final int idPillUser;
   final MedKit medKit;
-  final Pill pill;
+  final PillUser pill;
 
   MedKitPill({
     required this.id,
@@ -32,7 +32,7 @@ class MedKitPill {
       idMedKit: json['id_med_kit'],
       idPillUser: json['id_pill_user'],
       medKit: MedKit.fromJson(json['med_kit']),
-      pill: Pill.fromJson(json['pill']),
+      pill: PillUser.fromJson(json['pill']),
     );
   }
 

@@ -52,7 +52,7 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
                 log('Аптечка #${medKit.idMedKit}: ${medKit.name}', name: 'MedKitList');
 
                 MedKitIcon icon = MedKitIcon.values.firstWhere(
-                      (e) => e.toString() == 'MedKitIcon.${medKit.iconName?.toLowerCase()}',
+                      (e) => e.toString().split('.').last.toLowerCase() == medKit.iconName?.toLowerCase(),
                   orElse: () => MedKitIcon.firstAid,
                 );
 

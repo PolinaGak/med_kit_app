@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api_service.dart';
+import '../models/pill_user.dart';
 import '../models/medkit.dart';
 import '../enums/medkit_icon.dart';
 
@@ -12,11 +13,14 @@ class MedKitScreen extends StatefulWidget {
 }
 
 class _MedKitScreenState extends State<MedKitScreen> {
+  late Future<List<PillUser>> futurePills;
   late Future<MedKit> futureMedKit;
 
   @override
   void initState() {
     super.initState();
+    // Инициализация futurePills и futureMedKit
+    futurePills = ApiService().getPillsByMedKitId(widget.id_med_kit);
     futureMedKit = ApiService().getMedKitById(widget.id_med_kit);
   }
 
@@ -24,6 +28,7 @@ class _MedKitScreenState extends State<MedKitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: BackButton(),
         title: FutureBuilder<MedKit>(
           future: futureMedKit,
           builder: (context, snapshot) {
@@ -32,21 +37,27 @@ class _MedKitScreenState extends State<MedKitScreen> {
             } else if (snapshot.hasError) {
               return Text('Ошибка');
             } else if (snapshot.hasData) {
+              MedKit medKit = snapshot.data!;
+
+              Color iconColor = Color(int.parse(medKit.color.replaceFirst('#', '0xff')));
+
               return Row(
                 children: [
                   SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      snapshot.data!.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
                   Icon(
                     MedKitIcon.values.firstWhere(
-                          (e) => e.toString().split('.').last.toLowerCase() == snapshot.data!.iconName?.toLowerCase(),
+                          (e) => e.toString().split('.').last.toLowerCase() == medKit.iconName?.toLowerCase(),
                       orElse: () => MedKitIcon.firstAid,
                     ).getIconData(),
                     size: 24,
+                    color: iconColor,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      medKit.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               );
@@ -65,45 +76,58 @@ class _MedKitScreenState extends State<MedKitScreen> {
             return Center(child: Text('Ошибка загрузки данных'));
           } else if (snapshot.hasData) {
             MedKit medKit = snapshot.data!;
-
-            Color color = Color(int.parse(medKit.color.replaceFirst('#', '0xff')));
-
             return Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Комментарий к аптечке (если есть)
                   if (medKit.comment != null && medKit.comment!.isNotEmpty)
                     Container(
-                      padding: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16.0),
                       decoration: BoxDecoration(
-                        color: Colors.yellow[200],
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.yellow[100], // Жёлтый фон
+                        borderRadius: BorderRadius.circular(8.0),
                       ),
                       child: Text(
                         medKit.comment!,
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
-
                   SizedBox(height: 16),
-
                   Text(
                     'Список лекарств',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: 15,
-                      itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text('Лекарство ${index + 1}'),
-                          trailing: Icon(Icons.medical_services),
+                  FutureBuilder<List<PillUser>>(
+                    future: futurePills,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Ошибка загрузки данных'));
+                      } else if (snapshot.hasData) {
+                        List<PillUser> pills = snapshot.data!;
+                        if (pills.isEmpty) {
+                          return Center(child: Text('Нет лекарств в аптечке'));
+                        }
+                        return Expanded(
+                          child: ListView.builder(
+                            itemCount: pills.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                title: Text(pills[index].name),
+                                subtitle: Text('Категория: ${pills[index].category ?? 'Не указана'}'),
+                                trailing: Icon(Icons.medical_services),
+                              );
+                            },
+                          ),
                         );
-                      },
-                    ),
+                      } else {
+                        return Center(child: Text('Нет данных'));
+                      }
+                    },
                   ),
                 ],
               ),

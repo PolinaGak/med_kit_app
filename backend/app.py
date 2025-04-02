@@ -7,6 +7,7 @@ from sqlalchemy.future import select
 from backend.database import get_db
 import backend.crud as crud
 from backend.pydantic_models.med_kit import MedicineKitResponse, MedicineKitCreate
+from backend.pydantic_models.pill_user import PillUserResponse
 from backend.models.med_kit import MedicineKit
 
 from datetime import datetime
@@ -54,7 +55,6 @@ async def get_medkits(db: AsyncSession = Depends(get_db)) -> list[MedicineKitRes
     try:
         result = await db.execute(select(MedicineKit))
         medkits = result.scalars().all()
-
         return [MedicineKitResponse.model_validate(kit) for kit in medkits]
     except Exception as e:
         logging.error(f"Error fetching medkits: {e}")
@@ -67,3 +67,10 @@ async def get_medkit(id: int, db: AsyncSession = Depends(get_db)):
     if db_medkit is None:
         raise HTTPException(status_code=404, detail="MedKit not found")
     return db_medkit
+
+
+@app.get("/api/medkits/{id}/pills", response_model=list[PillUserResponse])
+async def get_pills_by_medkit_id(id: int, db: AsyncSession = Depends(get_db)):
+    pills = await crud.get_pills_by_medkit_id(id, db)
+    print(pills)
+    return pills
