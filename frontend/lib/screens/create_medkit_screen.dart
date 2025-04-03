@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'dart:developer';
 import '../enums/medkit_icon.dart';
 import '../models/medkit.dart';
 import '../api_service.dart';
 
 class CreateMedKitScreen extends StatefulWidget {
+  final int? medKitId;
+
+  CreateMedKitScreen({this.medKitId});
+
   @override
   _CreateMedKitScreenState createState() => _CreateMedKitScreenState();
 }
 
 class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
   final _nameController = TextEditingController();
+  final commentController = TextEditingController();
   MedKitIcon selectedIcon = MedKitIcon.firstAid;
   Color selectedColor = Color(0xFFFFB6C1);
   String? comment;
+  bool isEditing = false;
 
   List<Color> colorOptions = [
     Color(0xFFFFB6C1),
@@ -33,10 +38,36 @@ class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.medKitId != null) {
+      isEditing = true;
+      _loadMedKitData();
+    }
+  }
+
+  Future<void> _loadMedKitData() async {
+    try {
+      MedKit medKit = await ApiService().getMedKitById(widget.medKitId!);
+      setState(() {
+        _nameController.text = medKit.name;
+        selectedIcon = MedKitIcon.values.firstWhere(
+              (e) => e.toString().split('.').last.toLowerCase() == medKit.iconName?.toLowerCase(),
+          orElse: () => MedKitIcon.firstAid,
+        );
+        selectedColor = Color(int.parse(medKit.color.replaceFirst('#', '0xff')));
+        commentController.text = medKit.comment ?? '';
+      });
+    } catch (e) {
+      log('Ошибка загрузки аптечки: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Создание аптечки"),
+        title: Text(isEditing ? "Редактирование аптечки" : "Создание аптечки"),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -161,6 +192,7 @@ class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
               endIndent: 0,
             ),
             TextField(
+              controller: commentController,
               onChanged: (value) {
                 setState(() {
                   comment = value;
@@ -176,7 +208,7 @@ class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
             Center(
               child: ElevatedButton(
                 onPressed: _saveMedKit,
-                child: Text("Сохранить"),
+                child: Text(isEditing ? "Обновить" : "Сохранить"),
               ),
             ),
           ],
@@ -212,22 +244,34 @@ class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
     );
   }
 
-  void _saveMedKit() async {
-    final response = await ApiService().createMedKit(
-      _nameController.text,
-      '#${selectedColor.value.toRadixString(16).padLeft(6, '0').toUpperCase()}',
-      selectedIcon.toString().split('.').last,
-      comment,
-    );
-
-    if (response != null) {
-      Navigator.pop(context, response);
-    } else {
+  Future<void> _saveMedKit() async {
+    try {
+      if (isEditing) {
+        await ApiService().updateMedKit(
+          widget.medKitId!,
+          _nameController.text,
+          '#${selectedColor.value.toRadixString(16).padLeft(6, '0').toUpperCase()}',
+          selectedIcon.toString().split('.').last,
+          comment,
+        );
+        Navigator.pop(context);
+      } else {
+        final newMedKit = await ApiService().createMedKit(
+          _nameController.text,
+          '#${selectedColor.value.toRadixString(16).padLeft(6, '0').toUpperCase()}',
+          selectedIcon.toString().split('.').last,
+          comment,
+        );
+        if (newMedKit != null) {
+          Navigator.pop(context, newMedKit);
+        }
+      }
+    } catch (e) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
           title: Text("Ошибка"),
-          content: Text("Не удалось создать аптечку."),
+          content: Text("Не удалось сохранить аптечку."),
           actions: [
             TextButton(child: Text("OK"), onPressed: () => Navigator.pop(context)),
           ],

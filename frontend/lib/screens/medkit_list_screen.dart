@@ -115,7 +115,20 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(leading: Icon(Icons.edit), title: Text("Редактировать"), onTap: () {}),
+            ListTile(
+              leading: Icon(Icons.edit),
+              title: Text("Редактировать"),
+              onTap: () async {
+                Navigator.pop(context);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CreateMedKitScreen(medKitId: medKitId),
+                  ),
+                );
+                _refreshMedKits();
+              },
+            ),
             ListTile(
               leading: Icon(Icons.delete),
               title: Text("Удалить"),
@@ -144,7 +157,7 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
               child: Text("Отмена"),
             ),
             TextButton(
-              onPressed: () async
+              onPressed: () async {
                 try {
                   await ApiService().deleteMedKit(medKitId);
                   log('Аптечка с ID $medKitId успешно удалена', name: 'MedKitList');

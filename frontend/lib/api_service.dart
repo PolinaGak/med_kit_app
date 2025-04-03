@@ -96,4 +96,31 @@ class ApiService {
       throw Exception('Не удалось удалить аптечку');
     }
   }
+
+  // Метод для обновления аптечки
+  Future<void> updateMedKit(
+      int id,
+      String name,
+      String color,
+      String iconName,
+      String? comment,
+      ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/medkits/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'name': name,
+        'color': color,
+        'icon_name': iconName,
+        'comment': comment,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Не удалось обновить аптечку');
+    }
+  }
+
 }
