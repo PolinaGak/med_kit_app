@@ -74,3 +74,23 @@ async def get_pills_by_medkit_id(id: int, db: AsyncSession = Depends(get_db)):
     pills = await crud.get_pills_by_medkit_id(id, db)
     print(pills)
     return pills
+
+
+# Метод для удаления аптечки по ID
+@app.delete("/api/medkits/{id}", response_model=MedicineKitResponse)
+async def delete_medkit_by_id(id: int, db: AsyncSession = Depends(get_db)):
+    db_medkit = await crud.get_medkit_by_id(db=db, medkit_id=id)
+    print(db_medkit)
+    if db_medkit is None:
+        raise HTTPException(status_code=404, detail="MedKit not found")
+
+    await crud.delete_medkit(db=db, medkit_id=id)
+    return db_medkit
+
+
+# Метод для редактирования аптечки
+@app.put("/api/medkits/{id}", response_model=MedicineKitResponse)
+async def update_medkit(id: int, medkit: MedicineKitCreate, db: AsyncSession = Depends(get_db)):
+    db_medkit = await crud.update_medkit_by_id(db, id, medkit)
+
+    return MedicineKitResponse.from_orm(db_medkit)

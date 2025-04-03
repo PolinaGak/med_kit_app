@@ -86,4 +86,14 @@ class ApiService {
       return null;
     }
   }
+
+  // Метод для удаления аптечки по ID
+  Future<void> deleteMedKit(int id) async {
+    final url = Uri.parse('$baseUrl/api/medkits/$id');
+    final response = await http.delete(url);
+
+    if (response.statusCode != 200) {
+      throw Exception('Не удалось удалить аптечку');
+    }
+  }
 }

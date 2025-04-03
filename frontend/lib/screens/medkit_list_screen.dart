@@ -67,8 +67,8 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
                 return ListTile(
                   title: Text(medKit.name),
                   leading: Icon(
-                      icon.getIconData(),
-                      color: color
+                    icon.getIconData(),
+                    color: color,
                   ),
                   trailing: Icon(Icons.arrow_forward_ios),
                   onTap: () {
@@ -81,7 +81,7 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
                     );
                   },
                   onLongPress: () {
-                    _showEditDeleteMenu(context);
+                    _showEditDeleteMenu(context, medKit.idMedKit);
                   },
                 );
               },
@@ -107,7 +107,7 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
     );
   }
 
-  void _showEditDeleteMenu(BuildContext context) {
+  void _showEditDeleteMenu(BuildContext context, int medKitId) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -116,10 +116,59 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(leading: Icon(Icons.edit), title: Text("Редактировать"), onTap: () {}),
-            ListTile(leading: Icon(Icons.delete), title: Text("Удалить"), onTap: () {}),
+            ListTile(
+              leading: Icon(Icons.delete),
+              title: Text("Удалить"),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmationDialog(context, medKitId);
+              },
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, int medKitId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Text("Вы действительно хотите удалить эту аптечку?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Отмена"),
+            ),
+            TextButton(
+              onPressed: () async
+                try {
+                  await ApiService().deleteMedKit(medKitId);
+                  log('Аптечка с ID $medKitId успешно удалена', name: 'MedKitList');
+                  _refreshMedKits();
+                  Navigator.of(context).pop();
+                } catch (e) {
+                  log('Ошибка удаления аптечки: $e', name: 'MedKitList');
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Text("Ошибка"),
+                      content: Text("Не удалось удалить аптечку."),
+                      actions: [
+                        TextButton(child: Text("OK"), onPressed: () => Navigator.pop(context)),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: Text("Удалить"),
+            ),
+          ],
+        );
+      },
     );
   }
 
