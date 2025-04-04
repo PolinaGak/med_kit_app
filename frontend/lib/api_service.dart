@@ -61,12 +61,10 @@ class ApiService {
 
 
   //Сохранение новой аптечки
-  Future<MedKit?> createMedKit(
-      String name,
+  Future<MedKit?> createMedKit(String name,
       String color,
       String iconName,
-      String? comment,
-      ) async {
+      String? comment,) async {
     final url = Uri.parse('$baseUrl/api/medkits');
     final response = await http.post(
       url,
@@ -98,13 +96,11 @@ class ApiService {
   }
 
   // Метод для обновления аптечки
-  Future<void> updateMedKit(
-      int id,
+  Future<void> updateMedKit(int id,
       String name,
       String color,
       String iconName,
-      String? comment,
-      ) async {
+      String? comment,) async {
     final response = await http.put(
       Uri.parse('$baseUrl/api/medkits/$id'),
       headers: {
@@ -123,8 +119,7 @@ class ApiService {
     }
   }
 
-  Future<bool> createPill(
-      String name,
+  Future<bool> createPill(String name,
       DateTime? expirationDate,
       String? activeSubstance,
       String? category,
@@ -136,7 +131,6 @@ class ApiService {
       String? imageUrl,
       double? lastPrice,
       int medKitId) async {
-
     final pillData = {
       'name': name,
       'active_substance': activeSubstance,
@@ -165,6 +159,69 @@ class ApiService {
       }
     } catch (e) {
       log('Ошибка в API: $e');
+      return false;
+    }
+  }
+
+
+  Future<bool> deletePill(int medkitId, int pillId) async {
+    final url = Uri.parse('$baseUrl/api/medkits/$medkitId/pills/$pillId');
+    final response = await http.delete(url);
+
+    if (response.statusCode == 200) {
+      final responseBody = jsonDecode(response.body);
+
+      if (responseBody != null) {
+        print('Pill removed: ${responseBody['name']}');
+      }
+
+      return true;
+    } else {
+      print('Error: ${response.statusCode}');
+      return false;
+    }
+  }
+
+
+  // Метод для обновления лекарства в аптечке
+  Future<bool> updatePill(int medkitId,
+      int pillId,
+      String name,
+      DateTime? expirationDate,
+      String? activeSubstance,
+      String? category,
+      String? intakeType,
+      double? quantity,
+      String? format,
+      String? dosage,
+      String? comments,
+      String? imageUrl,
+      double? lastPrice,) async {
+    final pillData = {
+      'name': name,
+      'active_substance': activeSubstance,
+      'expiration_date': expirationDate?.toIso8601String(),
+      'category': category,
+      'intake_type': intakeType,
+      'quantity': quantity,
+      'format': format,
+      'dosage': dosage,
+      'comments': comments,
+      'image_url': imageUrl,
+      'last_price': lastPrice,
+    };
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/api/medkits/$medkitId/pills/$pillId'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: json.encode(pillData),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
       return false;
     }
   }

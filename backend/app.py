@@ -124,3 +124,57 @@ async def create_pill(medkit_id: int, pill: PillUserCreate, db: AsyncSession = D
     await db.commit()
 
     return PillUserResponse.from_orm(db_pill)
+
+
+@app.delete("/api/medkits/{medkit_id}/pills/{pill_id}", response_model=PillUserResponse)
+async def delete_pill_from_medkit(
+        medkit_id: int, pill_id: int, db: AsyncSession = Depends(get_db)
+):
+    db_medkit_pill = await db.execute(
+        select(MedKitPill).filter(MedKitPill.id_med_kit == medkit_id, MedKitPill.id_pill_user == pill_id)
+    )
+    db_medkit_pill = db_medkit_pill.scalar_one_or_none()
+
+    if not db_medkit_pill:
+        raise HTTPException(status_code=404, detail="Pill not found in this MedKit")
+
+    await db.delete(db_medkit_pill)
+
+    db_pill = await db.execute(select(PillUser).filter(PillUser.id_pill_user == pill_id))
+    db_pill = db_pill.scalar_one_or_none()
+
+    if db_pill:
+        await db.delete(db_pill)
+        await db.commit()
+
+        return db_pill
+
+    raise HTTPException(status_code=404, detail="Pill not found")
+
+
+@app.put("/api/medkits/{medkit_id}/pills/{pill_id}", response_model=PillUserResponse)
+async def update_pill_in_medkit(
+    medkit_id: int, pill_id: int, pill_data: PillUserCreate, db: AsyncSession = Depends(get_db)
+):
+    db_pill = await db.execute(select(PillUser).filter(PillUser.id_pill_user == pill_id))
+    db_pill = db_pill.scalar_one_or_none()
+
+    if not db_pill:
+        raise HTTPException(status_code=404, detail="Pill not found")
+
+    db_pill.name = pill_data.name
+    db_pill.active_substance = pill_data.active_substance
+    db_pill.expiration_date = pill_data.expiration_date
+    db_pill.category = pill_data.category
+    db_pill.intake_type = pill_data.intake_type
+    db_pill.quantity = pill_data.quantity
+    db_pill.format = pill_data.format
+    db_pill.dosage = pill_data.dosage
+    db_pill.comments = pill_data.comments
+    db_pill.image_url = pill_data.image_url
+    db_pill.last_price = pill_data.last_price
+
+    await db.commit()
+    await db.refresh(db_pill)
+
+    return PillUserResponse.from_orm(db_pill)

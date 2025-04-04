@@ -75,7 +75,7 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
     'Во время еды',
     'Нет ограничений',
     'Перед сном',
-    'После пробуждения'
+    'После пробуждения',
     'По мере необходимости',
     'Утром',
     'Днём',
@@ -110,6 +110,11 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
       return;
     }
 
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Необходимо ввести срок годности лекарства!')));
+      return;
+    }
+
     final isSuccess = await ApiService().createPill(
       _nameController.text,
       _selectedDate ?? DateTime.now(),
@@ -131,7 +136,6 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось сохранить лекарство')));
     }
   }
-
 
   Widget _buildTextField(
       TextEditingController controller,
