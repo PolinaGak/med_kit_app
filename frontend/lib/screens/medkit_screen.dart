@@ -3,6 +3,7 @@ import '../api_service.dart';
 import '../models/pill_user.dart';
 import '../models/medkit.dart';
 import '../enums/medkit_icon.dart';
+import 'create_pill_screen.dart';
 
 class MedKitScreen extends StatefulWidget {
   final int id_med_kit;
@@ -19,9 +20,14 @@ class _MedKitScreenState extends State<MedKitScreen> {
   @override
   void initState() {
     super.initState();
-    // Инициализация futurePills и futureMedKit
     futurePills = ApiService().getPillsByMedKitId(widget.id_med_kit);
     futureMedKit = ApiService().getMedKitById(widget.id_med_kit);
+  }
+
+  void _refreshPills() {
+    setState(() {
+      futurePills = ApiService().getPillsByMedKitId(widget.id_med_kit);
+    });
   }
 
   @override
@@ -81,7 +87,6 @@ class _MedKitScreenState extends State<MedKitScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Комментарий к аптечке (если есть)
                   if (medKit.comment != null && medKit.comment!.isNotEmpty)
                     Container(
                       padding: EdgeInsets.all(16.0),
@@ -139,39 +144,16 @@ class _MedKitScreenState extends State<MedKitScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
-        onPressed: () {
-          _showCreatePillDialog(context);
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CreatePillScreen(idMedKit: widget.id_med_kit),
+            ),
+          );
+          _refreshPills();
         },
       ),
-    );
-  }
-
-  void _showCreatePillDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Создать новое лекарство'),
-          content: TextField(
-            decoration: InputDecoration(hintText: 'Введите название лекарства'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Отмена'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Создать'),
-              onPressed: () {
-                // Логика создания лекарства
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }

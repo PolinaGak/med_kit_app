@@ -19,3 +19,19 @@ class PillUserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PillUserCreate(BaseModel):
+    name: str
+    active_substance: Optional[str] = None
+    expiration_date: Optional[date] = None
+    category: Optional[str] = None
+    intake_type: Optional[str] = None
+    quantity: Optional[float] = None
+    format: Optional[str] = None
+    dosage: Optional[str] = None
+    comments: Optional[str] = None
+    image_url: Optional[str] = None
+    last_price: Optional[float] = None
+
+    class Config:
+        from_attributes = True

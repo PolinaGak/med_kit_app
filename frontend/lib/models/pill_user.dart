@@ -1,22 +1,26 @@
+import 'dart:convert';
+import 'dart:developer';
+import 'package:http/http.dart' as http;
+
 class PillUser {
   final int idPillUser;
-  final String name;
-  final String? activeSubstance;
-  final DateTime? expirationDate;
-  final String? category;
-  final String? intakeType;
-  final double? quantity;
-  final String? format;
-  final String? dosage;
-  final String? comments;
-  final String? imageUrl;
-  final double? lastPrice;
+  String name;
+  DateTime? expirationDate;
+  String? activeSubstance;
+  String? category;
+  String? intakeType;
+  double? quantity;
+  String? format;
+  String? dosage;
+  String? comments;
+  String? imageUrl;
+  double? lastPrice;
 
   PillUser({
     required this.idPillUser,
     required this.name,
-    this.activeSubstance,
     this.expirationDate,
+    this.activeSubstance,
     this.category,
     this.intakeType,
     this.quantity,
@@ -31,8 +35,8 @@ class PillUser {
     return {
       'id_pill_user': idPillUser,
       'name': name,
-      'active_substance': activeSubstance,
       'expiration_date': expirationDate?.toIso8601String(),
+      'active_substance': activeSubstance,
       'category': category,
       'intake_type': intakeType,
       'quantity': quantity,

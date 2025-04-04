@@ -123,4 +123,49 @@ class ApiService {
     }
   }
 
+  Future<bool> createPill(
+      String name,
+      DateTime? expirationDate,
+      String? activeSubstance,
+      String? category,
+      String? intakeType,
+      double? quantity,
+      String? format,
+      String? dosage,
+      String? comments,
+      String? imageUrl,
+      double? lastPrice,
+      int medKitId) async {
+
+    final pillData = {
+      'name': name,
+      'active_substance': activeSubstance,
+      'expiration_date': expirationDate?.toIso8601String(),
+      'category': category,
+      'intake_type': intakeType,
+      'quantity': quantity,
+      'format': format,
+      'dosage': dosage,
+      'comments': comments,
+      'image_url': imageUrl,
+      'last_price': lastPrice,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/medkits/$medKitId/pills'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(pillData),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception('Не удалось создать лекарство');
+      }
+    } catch (e) {
+      log('Ошибка в API: $e');
+      return false;
+    }
+  }
 }

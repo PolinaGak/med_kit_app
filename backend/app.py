@@ -6,9 +6,11 @@ from sqlalchemy.future import select
 
 from backend.database import get_db
 import backend.crud as crud
+from backend.models.med_kit_pill import MedKitPill
 from backend.pydantic_models.med_kit import MedicineKitResponse, MedicineKitCreate
-from backend.pydantic_models.pill_user import PillUserResponse
+from backend.pydantic_models.pill_user import PillUserResponse, PillUserCreate
 from backend.models.med_kit import MedicineKit
+from backend.models.pill_user import PillUser
 
 from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
@@ -94,3 +96,31 @@ async def update_medkit(id: int, medkit: MedicineKitCreate, db: AsyncSession = D
     db_medkit = await crud.update_medkit_by_id(db, id, medkit)
 
     return MedicineKitResponse.from_orm(db_medkit)
+
+
+#Метод для добавления лекарства в аптечку
+@app.post("/api/medkits/{medkit_id}/pills", response_model=PillUserResponse)
+async def create_pill(medkit_id: int, pill: PillUserCreate, db: AsyncSession = Depends(get_db)):
+    db_pill = PillUser(
+        name=pill.name,
+        active_substance=pill.active_substance,
+        expiration_date=pill.expiration_date,
+        category=pill.category,
+        intake_type=pill.intake_type,
+        quantity=pill.quantity,
+        format=pill.format,
+        dosage=pill.dosage,
+        comments=pill.comments,
+        image_url=pill.image_url,
+        last_price=pill.last_price,
+    )
+
+    db.add(db_pill)
+    await db.commit()
+    await db.refresh(db_pill)
+
+    db_medkit_pill = MedKitPill(id_med_kit=medkit_id, id_pill_user=db_pill.id_pill_user)
+    db.add(db_medkit_pill)
+    await db.commit()
+
+    return PillUserResponse.from_orm(db_pill)
