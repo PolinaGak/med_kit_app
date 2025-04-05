@@ -76,3 +76,7 @@ async def update_medkit_by_id(
     await db.refresh(db_medkit)
 
     return db_medkit
+
+async def get_pill_by_id(db: AsyncSession, pill_id: int) -> PillUser:
+    result = await db.execute(select(PillUser).filter(PillUser.id_pill_user == pill_id))
+    return result.scalar_one_or_none()

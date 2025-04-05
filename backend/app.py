@@ -178,3 +178,12 @@ async def update_pill_in_medkit(
     await db.refresh(db_pill)
 
     return PillUserResponse.from_orm(db_pill)
+
+
+@app.get("/api/pills/{pill_id}", response_model=PillUserResponse)
+async def get_pill(pill_id: int, db: AsyncSession = Depends(get_db)):
+    db_pill = await crud.get_pill_by_id(db=db, pill_id=pill_id)
+    if db_pill is None:
+        raise HTTPException(status_code=404, detail="Pill not found")
+    return db_pill
+

@@ -170,14 +170,8 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final responseBody = jsonDecode(response.body);
-
-      if (responseBody != null) {
-        print('Pill removed: ${responseBody['name']}');
-      }
-
       return true;
     } else {
-      print('Error: ${response.statusCode}');
       return false;
     }
   }
@@ -223,6 +217,21 @@ class ApiService {
       return true;
     } else {
       return false;
+    }
+  }
+
+  Future<PillUser> getPillById(int pillId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/pills/$pillId'));
+
+      if (response.statusCode == 200) {
+        return PillUser.fromJson(json.decode(utf8.decode(response.bodyBytes)));
+      } else {
+        throw Exception('Failed to load pill');
+      }
+    } catch (e) {
+      log('Ошибка в API: $e');
+      rethrow;
     }
   }
 }

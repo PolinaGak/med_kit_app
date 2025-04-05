@@ -247,8 +247,17 @@ class _MedKitScreenState extends State<MedKitScreen> {
                                               IconButton(
                                                 icon: Icon(Icons.edit),
                                                 onPressed: () {
-                                                  // Заглушка для редактирования
-                                                  print('Редактирование');
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => CreatePillScreen(
+                                                        idMedKit: widget.id_med_kit,
+                                                        pillId: pill.idPillUser,
+                                                      ),
+                                                    ),
+                                                  ).then((_) {
+                                                    _refreshPills();
+                                                  });
                                                 },
                                               ),
                                               IconButton(

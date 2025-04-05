@@ -5,7 +5,9 @@ import '../api_service.dart';
 
 class CreatePillScreen extends StatefulWidget {
   final int idMedKit;
-  CreatePillScreen({required this.idMedKit});
+  final int? pillId;
+
+  CreatePillScreen({required this.idMedKit, this.pillId});
 
   @override
   _CreatePillScreenState createState() => _CreatePillScreenState();
@@ -83,6 +85,37 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
     'Перед или после еды',
   ];
 
+  bool isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pillId != null) {
+      isEditing = true;
+      _loadPillData();
+    }
+  }
+
+  Future<void> _loadPillData() async {
+    try {
+      PillUser pill = await ApiService().getPillById(widget.pillId!);
+      setState(() {
+        _nameController.text = pill.name;
+        _activeSubstanceController.text = pill.activeSubstance ?? '';
+        _quantityController.text = pill.quantity?.toString() ?? '';
+        _dosageController.text = pill.dosage ?? '';
+        _commentsController.text = pill.comments ?? '';
+        _lastPriceController.text = pill.lastPrice?.toString() ?? '';
+        _selectedDate = pill.expirationDate;
+        _category = pill.category;
+        _intakeType = pill.intakeType;
+        _format = pill.format;
+      });
+    } catch (e) {
+      print('Ошибка загрузки лекарства: $e');
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -115,33 +148,47 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
       return;
     }
 
-    final isSuccess = await ApiService().createPill(
-      _nameController.text,
-      _selectedDate ?? DateTime.now(),
-      _activeSubstanceController.text,
-      _category,
-      _intakeType,
-      double.tryParse(_quantityController.text),
-      _format,
-      _dosageController.text,
-      _commentsController.text,
-      null,
-      double.tryParse(_lastPriceController.text),
-      widget.idMedKit,
-    );
+    try {
+      if (isEditing) {
+        await ApiService().updatePill(
+          widget.idMedKit!,
+          widget.pillId!,
+          _nameController.text,
+          _selectedDate!,
+          _activeSubstanceController.text,
+          _category,
+          _intakeType,
+          double.tryParse(_quantityController.text),
+          _format,
+          _dosageController.text,
+          _commentsController.text,
+          null,
+          double.tryParse(_lastPriceController.text),
+        );
+      } else {
+        await ApiService().createPill(
+          _nameController.text,
+          _selectedDate!,
+          _activeSubstanceController.text,
+          _category,
+          _intakeType,
+          double.tryParse(_quantityController.text),
+          _format,
+          _dosageController.text,
+          _commentsController.text,
+          null,
+          double.tryParse(_lastPriceController.text),
+          widget.idMedKit,
+        );
+      }
 
-    if (isSuccess) {
       Navigator.pop(context);
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Не удалось сохранить лекарство')));
     }
   }
 
-  Widget _buildTextField(
-      TextEditingController controller,
-      String label, {
-        TextInputType? keyboardType,
-      }) {
+  Widget _buildTextField(TextEditingController controller, String label, {TextInputType? keyboardType}) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
@@ -171,7 +218,7 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Добавить новое лекарство'),
+        title: Text(isEditing ? 'Редактировать лекарство' : 'Добавить новое лекарство'),
       ),
       body: Padding(
         padding: EdgeInsets.all(16),
@@ -282,7 +329,7 @@ class _CreatePillScreenState extends State<CreatePillScreen> {
                   ),
                 ),
                 child: Text(
-                  'Сохранить',
+                  isEditing ? 'Обновить' : 'Сохранить',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),

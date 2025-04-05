@@ -10,7 +10,7 @@ load_dotenv("backend/.env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine =  create_async_engine(DATABASE_URL, echo=True, pool_size=20, max_overflow=0, pool_timeout=30, pool_recycle=3600)
 AsyncSessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,
