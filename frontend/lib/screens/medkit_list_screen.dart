@@ -7,6 +7,10 @@ import 'dart:developer';
 import 'create_medkit_screen.dart';
 
 class MedKitListScreen extends StatefulWidget {
+  final int userId;
+
+  MedKitListScreen({required this.userId});
+
   @override
   _MedKitListScreenState createState() => _MedKitListScreenState();
 }
@@ -17,12 +21,12 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
   @override
   void initState() {
     super.initState();
-    futureMedKits = ApiService().getAllMedKits();
+    futureMedKits = ApiService().getAllMedKitsByUserId(widget.userId);
   }
 
   void _refreshMedKits() {
     setState(() {
-      futureMedKits = ApiService().getAllMedKits();
+      futureMedKits = ApiService().getAllMedKitsByUserId(widget.userId);
     });
   }
 
@@ -188,7 +192,7 @@ class _MedKitListScreenState extends State<MedKitListScreen> {
   void _showCreateMedKitDialog(BuildContext context) async {
     final newMedKit = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CreateMedKitScreen()),
+      MaterialPageRoute(builder: (context) => CreateMedKitScreen(userId: widget.userId)),
     );
 
     if (newMedKit != null) {

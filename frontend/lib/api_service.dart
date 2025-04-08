@@ -4,15 +4,158 @@ import 'dart:developer';
 import 'models/medkit.dart';
 import 'models/medkit_pill.dart';
 import 'models/pill_user.dart';
+import 'models/user.dart';
 
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:9000';
+  static const String baseUrl = 'http://127.0.0.1:5000';
 
-  // Получение всех аптечек
-  Future<List<MedKit>> getAllMedKits() async {
+
+  Future<Map<String, dynamic>> registerUser(String email, String password, String name) async {
+    final url = Uri.parse('$baseUrl/register/');
+    final body = json.encode({
+      'email': email,
+      'password': password,
+      'name': name,
+    });
+
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/medkits'));
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final userId = responseData['user_id'];
+
+        return {'message': 'User registered successfully', 'user_id': userId};
+      } else {
+        return {'error': 'Registration failed: ${response.body}'};
+      }
+    } catch (e) {
+      log('Ошибка при регистрации: $e');
+      return {'error': 'Registration failed: $e'};
+    }
+  }
+
+
+
+  Future<Map<String, dynamic>> loginUser(String email, String password) async {
+    final url = Uri.parse('$baseUrl/login/');
+    final body = json.encode({
+      'email': email,
+      'password': password,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return {
+          'access_token': responseData['access_token'],
+          'refresh_token': responseData['refresh_token'],
+          'user_id': responseData['user_id'],
+        };
+      } else {
+        return {'error': 'Login failed: ${response.body}'};
+      }
+    } catch (e) {
+      log('Ошибка при входе: $e');
+      return {'error': 'Login failed: $e'};
+    }
+  }
+
+
+  Future<Map<String, dynamic>> refreshAccessToken(String refreshToken) async {
+    final url = Uri.parse('$baseUrl/refresh-token/');
+    final body = json.encode({
+      'refresh_token': refreshToken,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return {
+          'access_token': responseData['access_token'],
+          'token_type': responseData['token_type'],
+        };
+      } else {
+        return {'error': 'Failed to refresh access token: ${response.body}'};
+      }
+    } catch (e) {
+      log('Ошибка при обновлении токена: $e');
+      return {'error': 'Failed to refresh access token: $e'};
+    }
+  }
+
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl/forgot-password/');
+    final body = json.encode({
+      'email': email,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        return {'message': 'Password reset email sent successfully'};
+      } else {
+        return {'error': 'Failed to send password reset email: ${response.body}'};
+      }
+    } catch (e) {
+      log('Ошибка при сбросе пароля: $e');
+      return {'error': 'Failed to send password reset email: $e'};
+    }
+  }
+
+
+  Future<Map<String, dynamic>> resetPassword(String token, String newPassword) async {
+    final url = Uri.parse('$baseUrl/reset-password/');
+    final body = json.encode({
+      'token': token,
+      'new_password': newPassword,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        return {'message': 'Password reset successfully'};
+      } else {
+        return {'error': 'Failed to reset password: ${response.body}'};
+      }
+    } catch (e) {
+      log('Ошибка при сбросе пароля: $e');
+      return {'error': 'Failed to reset password: $e'};
+    }
+  }
+
+
+  Future<List<MedKit>> getAllMedKitsByUserId(int userId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/medkits/user/$userId'));
 
       if (response.statusCode == 200) {
         Iterable jsonResponse = json.decode(utf8.decode(response.bodyBytes));
@@ -64,8 +207,9 @@ class ApiService {
   Future<MedKit?> createMedKit(String name,
       String color,
       String iconName,
-      String? comment,) async {
-    final url = Uri.parse('$baseUrl/api/medkits');
+      String? comment,
+      int userId) async {
+    final url = Uri.parse('$baseUrl/api/medkits/$userId');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -73,7 +217,7 @@ class ApiService {
         'name': name,
         'color': color,
         'icon_name': iconName,
-        'comment': comment,
+        'comment': comment ?? '',
         'creation_date': DateTime.now().toIso8601String(),
       }),
     );
@@ -100,7 +244,7 @@ class ApiService {
       String name,
       String color,
       String iconName,
-      String? comment,) async {
+      String? comment) async {
     final response = await http.put(
       Uri.parse('$baseUrl/api/medkits/$id'),
       headers: {

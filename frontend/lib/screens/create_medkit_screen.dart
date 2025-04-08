@@ -7,8 +7,9 @@ import '../api_service.dart';
 
 class CreateMedKitScreen extends StatefulWidget {
   final int? medKitId;
+  final int? userId;
 
-  CreateMedKitScreen({this.medKitId});
+  CreateMedKitScreen({this.medKitId, this.userId});
 
   @override
   _CreateMedKitScreenState createState() => _CreateMedKitScreenState();
@@ -261,6 +262,7 @@ class _CreateMedKitScreenState extends State<CreateMedKitScreen> {
           '#${selectedColor.value.toRadixString(16).padLeft(6, '0').toUpperCase()}',
           selectedIcon.toString().split('.').last,
           comment,
+          widget.userId!,
         );
         if (newMedKit != null) {
           Navigator.pop(context, newMedKit);

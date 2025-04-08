@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -6,6 +7,7 @@ from sqlalchemy.future import select
 from backend.models.med_kit import MedicineKit
 from backend.models.pill_user import PillUser
 from backend.models.med_kit_pill import MedKitPill
+from backend.models.user_med_kit import UserMedicineKit
 from backend.pydantic_models.med_kit import MedicineKitCreate
 
 from backend.pydantic_models.pill_user import  PillUserResponse
@@ -43,9 +45,11 @@ async def delete_medkit(db: AsyncSession, medkit_id: int):
     # Ищем аптечку по ID
     result = await db.execute(select(MedicineKit).filter(MedicineKit.id_med_kit == medkit_id))
     medkit = result.scalars().first()
-    print(medkit)
 
     if medkit:
+        await db.execute(select(UserMedicineKit).filter(UserMedicineKit.id_med_kit == medkit_id))
+        await db.execute(delete(UserMedicineKit).filter(UserMedicineKit.id_med_kit == medkit_id))
+
         await db.delete(medkit)
         await db.commit()
     else:

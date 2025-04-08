@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, Sequence, ForeignKey
 from sqlalchemy.orm import relationship
 from backend.database import Base
 
@@ -18,6 +18,4 @@ class UserMedicineKit(Base):
     med_kit = relationship("MedicineKit", backref="med_kit_users")
 
     def __repr__(self):
-        return (
-            f"<UserMedicineKit(id_user={self.id_user}, id_med_kit={self.id_med_kit})>"
-        )
+        return f"<UserMedicineKit(id_user={self.id_user}, id_med_kit={self.id_med_kit})>"

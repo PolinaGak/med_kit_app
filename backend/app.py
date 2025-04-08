@@ -1,19 +1,35 @@
 import logging
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from backend.database import get_db
 import backend.crud as crud
 from backend.models.med_kit_pill import MedKitPill
+from backend.models.user_med_kit import UserMedicineKit
 from backend.pydantic_models.med_kit import MedicineKitResponse, MedicineKitCreate
 from backend.pydantic_models.pill_user import PillUserResponse, PillUserCreate
+from backend.pydantic_models.user import UserCreate, UserLogin
 from backend.models.med_kit import MedicineKit
 from backend.models.pill_user import PillUser
+from backend.models.user import User
 
-from datetime import datetime
+import jwt
+from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import BackgroundTasks
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+
+from dotenv import load_dotenv
+import os
+load_dotenv("backend/.env")
+
+MY_EMAIL = os.getenv("MY_EMAIL")
+MY_PASSWORD = os.getenv("MY_PASSWORD")
+SECRET_KEY = os.getenv("SECRET_KEY")
+REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
 
 app = FastAPI()
 
@@ -28,15 +44,188 @@ app.add_middleware(
 logging.basicConfig(level=logging.DEBUG)
 
 
+# Функция для генерации access токена
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+# Функция для генерации refresh токена
+def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=30)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, REFRESH_SECRET_KEY, algorithm="HS256")
+    return encoded_jwt
+
+
+@app.post("/register/")
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Проверяем, существует ли пользователь с таким email
+    result = await db.execute(select(User).filter(User.email == user.email))
+    db_user = result.scalars().first()
+
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Создаем нового пользователя
+    new_user = User(email=user.email, name=user.name)
+    new_user.set_password(user.password)
+
+    # Добавляем нового пользователя в базу данных
+    db.add(new_user)
+    await db.commit()  # Выполняем коммит, чтобы сохранить запись
+    await db.refresh(new_user)  # Обновляем объект для получения актуальных данных, включая id
+
+    return {"message": "User registered successfully", "user_id": new_user.id_user}
+
+
+
+@app.post("/login/")
+async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
+    # Асинхронно проверяем, существует ли пользователь с таким email
+    result = await db.execute(select(User).filter(User.email == user.email))
+    db_user = result.scalars().first()
+
+    if not db_user or not db_user.check_password(user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Генерация токенов
+    access_token = create_access_token(data={"sub": db_user.email})
+    refresh_token = create_refresh_token(data={"sub": db_user.email})
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "user_id": db_user.id_user}
+
+
+# Эндпоинт для обновления access токена с помощью refresh токена
+@app.post("/refresh-token/")
+async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
+    try:
+        # Декодируем refresh токен
+        payload = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=["HS256"])
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid refresh token")
+
+        # Асинхронно пытаемся найти пользователя по email
+        result = await db.execute(select(User).filter(User.email == email))
+        db_user = result.scalars().first()
+
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Refresh token has expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=400, detail="Invalid refresh token")
+
+    # Генерация нового access токена
+    new_access_token = create_access_token(data={"sub": email})
+
+    return {"access_token": new_access_token}
+
+
+# Конфигурация для отправки писем (например, через Gmail)
+conf = ConnectionConfig(
+    MAIL_USERNAME=MY_EMAIL,
+    MAIL_PASSWORD=MY_PASSWORD,
+    MAIL_FROM=MY_EMAIL,
+    MAIL_PORT=587,
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=True,
+)
+
+
+@app.post("/forgot-password/")
+async def forgot_password(email: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
+    # Асинхронно проверяем, существует ли пользователь с таким email
+    result = await db.execute(select(User).filter(User.email == email))
+    db_user = result.scalars().first()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Создаём токен для сброса пароля
+    reset_token = create_access_token(data={"sub": email}, expires_delta=timedelta(hours=1))
+    reset_link = f"http://example.com/reset-password?token={reset_token}"
+
+    # Создаём сообщение для отправки
+    message = MessageSchema(
+        subject="Password Reset",
+        recipients=[email],
+        body=f"Click here to reset your password: {reset_link}",
+        subtype="html"
+    )
+    # Отправляем сообщение асинхронно в фоне
+    background_tasks.add_task(FastMail(conf).send_message, message)
+
+    return {"message": "Password reset email sent"}
+
+
+# Эндпоинт для сброса пароля
+@app.post("/reset-password/")
+async def reset_password(token: str = Query(...), new_password: str = Query(...), db: AsyncSession = Depends(get_db)):
+    # Декодируем токен и проверяем его
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid token")
+
+        # Асинхронно пытаемся найти пользователя
+        result = await db.execute(select(User).filter(User.email == email))
+        db_user = result.scalars().first()
+
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail="Token has expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    # Хэшируем новый пароль перед его сохранением
+    db_user.set_password(new_password)
+
+    # Асинхронно сохраняем новый пароль в базе данных
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+
+    return {"message": "Password reset successful"}
+
+
+
+"""
+@app.put("/profile/")
+async def update_profile(name: str, email: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    db_user = db.query(User).filter(User.id == current_user.id).first()
+    db_user.name = name
+    db_user.email = email
+    db.commit()
+    return {"message": "Profile updated"}
+
+
+@app.get("/faq/")
+async def get_faq():
+    return {"faq": "Frequently asked questions content"}
+
+@app.get("/support/")
+async def get_support():
+    return {"support_email": "support@example.com", "contact": "123-456-7890"}
+    
+"""
+
 @app.get("/")
 async def read_root():
     return {"message": "This is API for medKit"}
 
 
-@app.post("/api/medkits", response_model=MedicineKitResponse)
-async def create_medkit(
-    medkit: MedicineKitCreate, db: AsyncSession = Depends(get_db)
-) -> MedicineKitResponse:
+@app.post("/api/medkits/{user_id}")
+async def create_medkit(medkit: MedicineKitCreate, user_id: int, db: AsyncSession = Depends(get_db)) -> MedicineKitResponse:
     db_medkit = MedicineKit(
         name=medkit.name,
         color=medkit.color,
@@ -49,13 +238,17 @@ async def create_medkit(
     await db.commit()
     await db.refresh(db_medkit)
 
+    user_med_kit = UserMedicineKit(id_user=user_id, id_med_kit=db_medkit.id_med_kit)
+    db.add(user_med_kit)
+    await db.commit()
+
     return MedicineKitResponse.from_orm(db_medkit)
 
 
-@app.get("/api/medkits")
-async def get_medkits(db: AsyncSession = Depends(get_db)) -> list[MedicineKitResponse]:
+@app.get("/api/medkits/user/{user_id}")
+async def get_medkits_by_user_id(user_id: int, db: AsyncSession = Depends(get_db)) -> list[MedicineKitResponse]:
     try:
-        result = await db.execute(select(MedicineKit))
+        result = await db.execute(select(MedicineKit).join(UserMedicineKit).filter(UserMedicineKit.id_user == user_id))
         medkits = result.scalars().all()
         return [MedicineKitResponse.model_validate(kit) for kit in medkits]
     except Exception as e:
@@ -64,7 +257,7 @@ async def get_medkits(db: AsyncSession = Depends(get_db)) -> list[MedicineKitRes
 
 
 @app.get("/api/medkits/{id}", response_model=MedicineKitResponse)
-async def get_medkit(id: int, db: AsyncSession = Depends(get_db)):
+async def get_medkit_by_medkit_id(id: int, db: AsyncSession = Depends(get_db)):
     db_medkit = await crud.get_medkit_by_id(db=db, medkit_id=id)
     if db_medkit is None:
         raise HTTPException(status_code=404, detail="MedKit not found")

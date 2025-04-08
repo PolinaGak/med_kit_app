@@ -5,6 +5,10 @@ import 'search_screen.dart';
 import 'app_drawer.dart';
 
 class HomeScreen extends StatefulWidget {
+  final int userId;
+
+  HomeScreen({required this.userId});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -12,11 +16,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    MedKitListScreen(),  // Экран "Аптечка"
-    ScheduleScreen(),  // Экран "График приема лекарств"
-    SearchScreen(),  // Экран "Поиск"
-  ];
+  final List<Widget> _pages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _pages.add(MedKitListScreen(userId: widget.userId));
+    _pages.add(ScheduleScreen());
+    _pages.add(SearchScreen());
+  }
 
   void _onItemTapped(int index) {
     setState(() {
