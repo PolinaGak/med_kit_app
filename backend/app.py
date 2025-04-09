@@ -265,6 +265,11 @@ async def read_root():
     return {"message": "This is API for medKit"}
 
 
+@app.head("/")
+async def head_root():
+    return {}
+
+
 @app.post("/api/medkits/{user_id}")
 async def create_medkit(medkit: MedicineKitCreate, user_id: int, db: AsyncSession = Depends(get_db)) -> MedicineKitResponse:
     db_medkit = MedicineKit(
