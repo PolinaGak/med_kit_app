@@ -1,6 +1,8 @@
 import logging
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -17,7 +19,6 @@ from backend.models.user import User
 
 import jwt
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import BackgroundTasks
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
@@ -43,6 +44,29 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.DEBUG)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
+        user_id: Optional[int] = payload.get("sub")
+
+        if user_id is None:
+            raise HTTPException(status_code=403, detail="Could not validate credentials")
+
+        async with db.begin():
+            result = await db.execute(select(User).filter(User.id_user == user_id))
+            db_user = result.scalar_one_or_none()
+
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return db_user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=403, detail="Token has expired")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
 
 # Функция для генерации access токена
 def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
@@ -70,14 +94,12 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Создаем нового пользователя
     new_user = User(email=user.email, name=user.name)
     new_user.set_password(user.password)
 
-    # Добавляем нового пользователя в базу данных
     db.add(new_user)
-    await db.commit()  # Выполняем коммит, чтобы сохранить запись
-    await db.refresh(new_user)  # Обновляем объект для получения актуальных данных, включая id
+    await db.commit()
+    await db.refresh(new_user)
 
     return {"message": "User registered successfully", "user_id": new_user.id_user}
 
@@ -85,14 +107,12 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @app.post("/login/")
 async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
-    # Асинхронно проверяем, существует ли пользователь с таким email
     result = await db.execute(select(User).filter(User.email == user.email))
     db_user = result.scalars().first()
 
     if not db_user or not db_user.check_password(user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Генерация токенов
     access_token = create_access_token(data={"sub": db_user.email})
     refresh_token = create_refresh_token(data={"sub": db_user.email})
 
@@ -118,10 +138,9 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Refresh token has expired")
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid refresh token")
 
-    # Генерация нового access токена
     new_access_token = create_access_token(data={"sub": email})
 
     return {"access_token": new_access_token}
@@ -184,7 +203,7 @@ async def reset_password(token: str = Query(...), new_password: str = Query(...)
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=400, detail="Token has expired")
-    except jwt.JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=400, detail="Invalid token")
 
     # Хэшируем новый пароль перед его сохранением
@@ -198,17 +217,39 @@ async def reset_password(token: str = Query(...), new_password: str = Query(...)
     return {"message": "Password reset successful"}
 
 
+@app.get("/user")
+async def get_user_profile(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    async with db.begin():
+        result = await db.execute(select(User).filter(User.id == current_user.id))
+        db_user = result.scalar_one_or_none()
+
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "name": db_user.name,
+        "email": db_user.email,
+    }
+
+
+@app.put("/profile/")
+async def update_profile(name: str, email: str, db: AsyncSession = Depends(get_db),
+                         current_user: User = Depends(get_current_user)):
+    async with db.begin():
+        result = await db.execute(select(User).filter(User.id == current_user.id))
+        db_user = result.scalar_one_or_none()
+
+        if db_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        db_user.name = name
+        db_user.email = email
+
+        await db.commit()
+
+    return {"message": "Profile updated successfully"}
 
 """
-@app.put("/profile/")
-async def update_profile(name: str, email: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_user = db.query(User).filter(User.id == current_user.id).first()
-    db_user.name = name
-    db_user.email = email
-    db.commit()
-    return {"message": "Profile updated"}
-
-
 @app.get("/faq/")
 async def get_faq():
     return {"faq": "Frequently asked questions content"}
