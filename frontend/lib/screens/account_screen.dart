@@ -19,7 +19,6 @@ class _AccountScreenState extends State<AccountScreen> {
   String _name = '';
   bool _isLoading = true;
 
-  // Метод для получения данных пользователя
   Future<void> _getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -53,7 +52,6 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
-  // Метод для обновления данных, вызываемый после редактирования
   void _updateUserData(String name, String email) {
     setState(() {
       _name = name;

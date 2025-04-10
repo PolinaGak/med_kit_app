@@ -30,8 +30,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(utf8.decode(response.bodyBytes));
         final userId = responseData['user_id'];
+        final accessToken = responseData['access_token'];
 
-        return {'message': 'User registered successfully', 'user_id': userId};
+        return {'message': 'User registered successfully', 'user_id': userId, 'access_token': accessToken,};
       } else {
         return {'error': 'Registration failed: ${response.body}'};
       }

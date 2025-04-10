@@ -81,8 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (result.containsKey('message')) {
         final userId = result['user_id'];
+        final token = result['access_token'];
 
-        await _saveUserId(userId);
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('userId', userId);
+        await prefs.setString('access_token', token);
 
         Navigator.pushReplacement(
           context,
@@ -103,6 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

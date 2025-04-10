@@ -87,7 +87,6 @@ def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=3
 
 @app.post("/register/")
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    # Проверяем, существует ли пользователь с таким email
     result = await db.execute(select(User).filter(User.email == user.email))
     db_user = result.scalars().first()
 
@@ -101,7 +100,9 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_user)
 
-    return {"message": "User registered successfully", "user_id": new_user.id_user}
+    access_token = create_access_token(data={"sub": new_user.email})
+
+    return {"message": "User registered successfully", "user_id": new_user.id_user, "access_token": access_token}
 
 
 
