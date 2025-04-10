@@ -175,6 +175,29 @@ class ApiService {
     }
   }
 
+  Future<List<PillUser>> getAllPills({required int userId}) async {
+    final response = await http.get(Uri.parse('$baseUrl/api/medkits/user/$userId'));
+
+    if (response.statusCode == 200) {
+      List<dynamic> medkits = json.decode(response.body);
+      List<PillUser> pills = [];
+
+      for (var medkit in medkits) {
+        final medkitId = medkit['id_med_kit'];
+        final pillsResponse = await http.get(Uri.parse('$baseUrl/api/medkits/$medkitId/pills'));
+
+        if (pillsResponse.statusCode == 200) {
+          List<dynamic> pillList = json.decode(utf8.decode(pillsResponse.bodyBytes));
+          pills.addAll(pillList.map((json) => PillUser.fromJson(json)).toList());
+        }
+      }
+
+      return pills;
+    } else {
+      throw Exception('Failed to load pills');
+    }
+  }
+
   // Обновление данных профиля
   Future<Map<String, dynamic>?> updateProfile(
       String token, String name, String email) async {

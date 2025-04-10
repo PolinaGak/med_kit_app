@@ -437,3 +437,49 @@ async def get_pill(pill_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Pill not found")
     return db_pill
 
+
+@app.get("/api/pills/search", response_model=list[PillUserResponse])
+async def search_pills(
+    query: Optional[str] = None,
+    filter_by: Optional[str] = Query("name"),
+    sort_by: Optional[str] = Query("name"),
+    user_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    if user_id is None:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    # Получаем ID всех аптечек пользователя
+    result = await db.execute(select(UserMedicineKit.id_med_kit).where(UserMedicineKit.id_user == user_id))
+    medkit_ids = result.scalars().all()
+
+    if not medkit_ids:
+        return []
+
+    # Получаем все лекарства из аптечек пользователя
+    result = await db.execute(
+        select(PillUser)
+        .join(MedKitPill, PillUser.id_pill_user == MedKitPill.id_pill_user)
+        .where(MedKitPill.id_med_kit.in_(medkit_ids))
+    )
+    pills = result.scalars().all()
+
+    # Фильтрация
+    if query:
+        query_lower = query.lower()
+        if filter_by == "name":
+            pills = [p for p in pills if p.name and query_lower in p.name.lower()]
+        elif filter_by == "activeSubstance":
+            pills = [p for p in pills if p.active_substance and query_lower in p.active_substance.lower()]
+        elif filter_by == "category":
+            pills = [p for p in pills if p.category and query_lower in p.category.lower()]
+
+    # Сортировка
+    if sort_by == "name":
+        pills.sort(key=lambda p: (p.name or "").lower())
+    elif sort_by == "expirationDate":
+        pills.sort(key=lambda p: p.expiration_date or datetime.max)
+    elif sort_by == "category":
+        pills.sort(key=lambda p: (p.category or "").lower())
+
+    return [PillUserResponse.model_validate(p) for p in pills]

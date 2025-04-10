@@ -22,8 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _pages.add(MedKitListScreen(userId: widget.userId));
-    _pages.add(ScheduleScreen());
-    _pages.add(SearchScreen());
+    _pages.add(SearchScreen(userId: widget.userId));;
   }
 
   void _onItemTapped(int index) {

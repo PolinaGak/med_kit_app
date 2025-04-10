@@ -183,15 +183,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     onPressed: _login,
                     child: Text('Войти'),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/forgot-password');
-                    },
-                    child: Text(
-                      'Забыли пароль?',
-                      style: TextStyle(color: Colors.blue),
-                    ),
-                  ),
+                  // TextButton(
+                  //   onPressed: () {
+                  //     Navigator.pushNamed(context, '/forgot-password');
+                  //   },
+                  //   child: Text(
+                  //     'Забыли пароль?',
+                  //     style: TextStyle(color: Colors.blue),
+                  //   ),
+                  // ),
                   TextButton(
                     onPressed: () {
                       Navigator.push(
