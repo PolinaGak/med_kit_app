@@ -1,16 +1,31 @@
-# med_kit
+# Органайзер лекарств
 
-A new Flutter project.
+Android-приложение для структурирования информации о лекарствах. 
 
-## Getting Started
+## Открыть приложение со стороны пользователя
 
-This project is a starting point for a Flutter application.
+Скачайте отсюда [app-release.apk](https://github.com/PolinaGak/med_kit_app/tree/develop/frontend/build/app/outputs/flutter-apk) файл `app-release.apk`
+на устройство Android и установите его. 
 
-A few resources to get you started if this is your first Flutter project:
+Будет возможность зарегестрироваться самостоятельно и протестировать весь функционал приложения. 
+Также предусмотрена возможность зайти в демонстрационного пользователя и оценить, как выглядит приложение при использовании. 
+По возможности лучше ничего не менять, но если очень захочется, там тоже это можно сделать.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+**Почта**: example@yandex.ru  
+**Пароль**: Demo1234.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Внести изменения в код приложения со стороны разработчика
+
+1. Скачать репозиторий на локальную машину
+2. Установить необходимые зависимости:
+   ```bash
+   pip install -r requirements.txt
+3. Зайти в нужную папку
+    ```bash
+    cd ../frontend
+4. Установить flutter зависимости (предварительно установив Flutter):
+    ```bash
+   flutter pub get
+5. Запустить web-версию приложения:
+    ```bash
+   flutter run
