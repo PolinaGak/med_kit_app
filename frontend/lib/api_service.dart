@@ -8,7 +8,8 @@ import 'models/user.dart';
 
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:5000';
+  //static const String baseUrl = 'http://127.0.0.1:4000';
+  static const String baseUrl = 'https://med-kit-app-api.onrender.com';
 
 
   Future<Map<String, dynamic>> registerUser(String email, String password, String name) async {
@@ -27,7 +28,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map<String, dynamic> responseData = json.decode(utf8.decode(response.bodyBytes));
         final userId = responseData['user_id'];
 
         return {'message': 'User registered successfully', 'user_id': userId};
@@ -57,7 +58,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        final Map<String, dynamic> responseData = json.decode(utf8.decode(response.bodyBytes));
         return {
           'access_token': responseData['access_token'],
           'refresh_token': responseData['refresh_token'],
@@ -149,6 +150,59 @@ class ApiService {
     } catch (e) {
       log('Ошибка при сбросе пароля: $e');
       return {'error': 'Failed to reset password: $e'};
+    }
+  }
+
+
+  Future<Map<String, dynamic>?> getUserProfile(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/user'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        return null;
+      }
+    } catch (e) {
+      throw Exception('Failed to load user profile');
+    }
+  }
+
+  // Обновление данных профиля
+  Future<Map<String, dynamic>?> updateProfile(
+      String token, String name, String email) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/profile/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'name': name,
+          'email': email,
+        }),
+      );
+
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        return json.decode(utf8.decode(response.bodyBytes));
+      } else {
+        final errorResponse = json.decode(response.body);
+        print("Error: ${errorResponse['detail']}");
+        return null;
+      }
+    } catch (e) {
+      print("Error occurred: $e");
+      throw Exception('Failed to update profile');
     }
   }
 

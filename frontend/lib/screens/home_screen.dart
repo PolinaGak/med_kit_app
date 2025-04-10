@@ -36,12 +36,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Med_kit")),
-      drawer: AppDrawer(), // Боковое меню
+      drawer: AppDrawer(userId: widget.userId), // Боковое меню
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.medical_services), label: 'Аптечка'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'График'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Поиск'),
         ],
         currentIndex: _selectedIndex,

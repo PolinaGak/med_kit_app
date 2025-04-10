@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _saveUserData(String accessToken, String refreshToken, int userId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('access_token', accessToken); // Сохраняем access_token
-    await prefs.setString('refresh_token', refreshToken); // Сохраняем refresh_token
+    await prefs.setString('refresh_token', refreshToken);
     await prefs.setInt('userId', userId); // Сохраняем userId
   }
 

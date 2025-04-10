@@ -12,7 +12,7 @@ from backend.models.med_kit_pill import MedKitPill
 from backend.models.user_med_kit import UserMedicineKit
 from backend.pydantic_models.med_kit import MedicineKitResponse, MedicineKitCreate
 from backend.pydantic_models.pill_user import PillUserResponse, PillUserCreate
-from backend.pydantic_models.user import UserCreate, UserLogin
+from backend.pydantic_models.user import UserCreate, UserLogin, ProfileUpdate
 from backend.models.med_kit import MedicineKit
 from backend.models.pill_user import PillUser
 from backend.models.user import User
@@ -50,13 +50,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
-        user_id: Optional[int] = payload.get("sub")
+        user_email: Optional[str] = payload.get("sub")
 
-        if user_id is None:
+        if user_email is None:
             raise HTTPException(status_code=403, detail="Could not validate credentials")
 
         async with db.begin():
-            result = await db.execute(select(User).filter(User.id_user == user_id))
+            result = await db.execute(select(User).filter(User.email == user_email))
             db_user = result.scalar_one_or_none()
 
         if db_user is None:
@@ -220,7 +220,7 @@ async def reset_password(token: str = Query(...), new_password: str = Query(...)
 @app.get("/user")
 async def get_user_profile(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     async with db.begin():
-        result = await db.execute(select(User).filter(User.id == current_user.id))
+        result = await db.execute(select(User).filter(User.id_user == current_user.id_user))
         db_user = result.scalar_one_or_none()
 
     if db_user is None:
@@ -233,17 +233,27 @@ async def get_user_profile(db: AsyncSession = Depends(get_db), current_user: Use
 
 
 @app.put("/profile/")
-async def update_profile(name: str, email: str, db: AsyncSession = Depends(get_db),
-                         current_user: User = Depends(get_current_user)):
+async def update_profile(
+    profile: ProfileUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     async with db.begin():
-        result = await db.execute(select(User).filter(User.id == current_user.id))
+        result = await db.execute(select(User).filter(User.id_user == current_user.id_user))
         db_user = result.scalar_one_or_none()
 
         if db_user is None:
             raise HTTPException(status_code=404, detail="User not found")
 
-        db_user.name = name
-        db_user.email = email
+        # Проверка на уникальность email
+        existing_user_result = await db.execute(select(User).filter(User.email == profile.email))
+        existing_user = existing_user_result.scalar_one_or_none()
+
+        if existing_user and existing_user.id_user != current_user.id_user:
+            raise HTTPException(status_code=400, detail="Email is already taken")
+
+        db_user.name = profile.name
+        db_user.email = profile.email
 
         await db.commit()
 

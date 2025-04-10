@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="med_kit"
+        android:label="Органайзер лекарств"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
